@@ -9,6 +9,7 @@ namespace AillieoUtils
     {
 
         const string maskedShaderName = "AillieoUtils/UISoftMask";
+        const string maskedShaderNameETC1 = "AillieoUtils/UISoftMaskETC1";
 
         public Texture2D alphaTexture;
 
@@ -45,6 +46,19 @@ namespace AillieoUtils
                 return m_MaskedMaterial;
             }
         }
+        Material m_MaskedMaterialETC1;
+        Material maskedMaterialETC1
+        {
+            get
+            {
+                if (m_MaskedMaterialETC1 == null)
+                {
+                    m_MaskedMaterialETC1 = new Material(Shader.Find(maskedShaderNameETC1));
+                    UpdateAlphaTexture();
+                }
+                return m_MaskedMaterialETC1;
+            }
+        }
 
 
         protected override void OnEnable()
@@ -64,12 +78,19 @@ namespace AillieoUtils
         void UpdateAlphaTexture()
         {
             maskedMaterial.SetTexture("_SoftMaskTex", alphaTexture);
+            maskedMaterialETC1.SetTexture("_SoftMaskTex", alphaTexture);
         }
+
         void UpdateTransformInfo()
         {
             maskedMaterial.SetVector("_SoftMaskRect", softMaskRect);
             maskedMaterial.SetMatrix("_SoftMaskTrans", transform.worldToLocalMatrix);
+            maskedMaterialETC1.SetVector("_SoftMaskRect", softMaskRect);
+            maskedMaterialETC1.SetMatrix("_SoftMaskTrans", transform.worldToLocalMatrix);
         }
+
+
+        public virtual bool MaskEnabled() { return IsActive() && alphaTexture != null; }
 
 
 #if UNITY_EDITOR
@@ -78,7 +99,7 @@ namespace AillieoUtils
         {
             base.OnValidate();
 
-            if (!IsActive())
+            if (!MaskEnabled())
             {
                 return;
             }
@@ -95,7 +116,7 @@ namespace AillieoUtils
 
         private void OnDrawGizmos()
         {
-            if(drawGizmosForDebugging)
+            if(drawGizmosForDebugging && MaskEnabled())
             {
                 Gizmos.color = Color.yellow;
                 rectTransform.GetWorldCorners(fourCorners);
@@ -111,25 +132,37 @@ namespace AillieoUtils
 
 #endif
 
-
-
-
-        void PerformMaskAction()
+        private void OnTransformChildrenChanged()
         {
-            var targets = GetComponentsInChildren<MaskableGraphic>();
-            foreach (var smt in targets)
+            PerformMaskAction();
+        }
+
+
+        public void PerformMaskAction()
+        {
+            var mgs = GetComponentsInChildren<MaskableGraphic>();
+            foreach (var mg in mgs)
             {
-                smt.material = maskedMaterial;
+                Image img = mg as Image;
+                if (img)
+                {
+                    if(img.sprite.associatedAlphaSplitTexture != null)
+                    {
+                        mg.material = maskedMaterialETC1;
+                        continue;
+                    }
+                }
+                mg.material = maskedMaterial;
             }
         }
 
 
-        void ResetMaskTargets()
+        public void ResetMaskTargets()
         {
-            var targets = GetComponentsInChildren<MaskableGraphic>();
-            foreach (var smt in targets)
+            var mgs = GetComponentsInChildren<MaskableGraphic>();
+            foreach (var mg in mgs)
             {
-                smt.material = null;
+                mg.material = null;
             }
         }
 

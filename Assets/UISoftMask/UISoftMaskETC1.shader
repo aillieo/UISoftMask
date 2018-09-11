@@ -1,10 +1,12 @@
 ﻿// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
 
-Shader "AillieoUtils/UISoftMask"     
+Shader "AillieoUtils/UISoftMaskETC1"     
 {     
     Properties     
     {     
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
+		[PerRendererData] _AlphaTex("Sprite Alpha Texture", 2D) = "white" {}
+
         _Color ("Tint", Color) = (1,1,1,1)
 
 
@@ -52,7 +54,8 @@ Shader "AillieoUtils/UISoftMask"
             CGPROGRAM     
             #pragma vertex vert     
             #pragma fragment frag     
-            #include "UnityCG.cginc"     
+			#include "UnityCG.cginc"
+			#include "UnityUI.cginc"  
                  
             struct appdata_t     
             {     
@@ -61,7 +64,7 @@ Shader "AillieoUtils/UISoftMask"
                 float2 texcoord : TEXCOORD0;
             };     
      
-            struct v2f     
+            struct v2f 
             {     
                 float4 vertex   : SV_POSITION;     
                 fixed4 color    : COLOR;     
@@ -70,6 +73,7 @@ Shader "AillieoUtils/UISoftMask"
             };     
                
             sampler2D _MainTex;
+			sampler2D _AlphaTex;
 			fixed4 _Color;
 			fixed4 _TextureSampleAdd;
 
@@ -108,10 +112,11 @@ Shader "AillieoUtils/UISoftMask"
      
             fixed4 frag(v2f IN) : SV_Target     
             {     
-				fixed4 finalTex = tex2D(_MainTex, IN.texcoord)+ _TextureSampleAdd;
+				fixed4 finalTex = UnityGetUIDiffuseColor(IN.texcoord, _MainTex, _AlphaTex, _TextureSampleAdd) * IN.color;
+
                 fixed4 alphaTex = tex2D(_SoftMaskTex,IN.texcoord_uv1);		// alpha from soft mask texture
 
-                return finalTex * IN.color * alphaTex.a;
+                return finalTex * alphaTex.a;
             }     
             ENDCG     
         }     
