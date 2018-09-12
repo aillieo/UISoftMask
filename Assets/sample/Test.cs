@@ -8,13 +8,12 @@ using UnityEngine.Events;
 public class Test : MonoBehaviour {
 
 
-    public GameObject image;
     public GameObject mask;
 
 	// Use this for initialization
 	void Start () {
 
-        if (image == null || mask == null)
+        if (mask == null)
         {
             return;
         }
@@ -32,9 +31,7 @@ public class Test : MonoBehaviour {
 
     void MaskOnDrag(BaseEventData eventData)
     {
-        var pos = image.transform.position;
         mask.transform.localPosition += (Vector3)((PointerEventData)eventData).delta;
-        image.transform.position = pos;
     }
 
 

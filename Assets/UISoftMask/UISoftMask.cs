@@ -13,6 +13,8 @@ namespace AillieoUtils
 
         public Texture2D alphaTexture;
 
+        public GameObject[] managedMaskingTarget;
+
 
         protected UISoftMask()
         { }
@@ -61,19 +63,6 @@ namespace AillieoUtils
         }
 
 
-        protected override void OnEnable()
-        {
-            base.OnEnable();
-            PerformMaskAction();
-        }
-
-        protected override void OnDisable()
-        {
-            base.OnDisable();
-            ResetMaskTargets();
-
-        }
-
 
         void UpdateAlphaTexture()
         {
@@ -90,7 +79,7 @@ namespace AillieoUtils
         }
 
 
-        public virtual bool MaskEnabled() { return IsActive() && alphaTexture != null; }
+        public bool MaskEnabled() { return IsActive() && alphaTexture != null; }
 
 
 #if UNITY_EDITOR
@@ -106,7 +95,6 @@ namespace AillieoUtils
 
             UpdateAlphaTexture();
             UpdateTransformInfo();
-            PerformMaskAction();
         }
 
 
@@ -120,33 +108,57 @@ namespace AillieoUtils
             {
                 Gizmos.color = Color.yellow;
                 rectTransform.GetWorldCorners(fourCorners);
-                Rect r = new Rect();
-                r.x = fourCorners[0].x;
-                r.y = fourCorners[1].y;
-                r.width = fourCorners[2].x - fourCorners[1].x;
-                r.height = fourCorners[0].y - fourCorners[1].y;
+                Rect r = new Rect
+                {
+                    x = fourCorners[0].x,
+                    y = fourCorners[1].y,
+                    width = fourCorners[2].x - fourCorners[1].x,
+                    height = fourCorners[0].y - fourCorners[1].y
+                };
                 Gizmos.DrawGUITexture(r, alphaTexture);
+                for (int i = 0; i < 4; i++)
+                {
+                    Gizmos.DrawLine(fourCorners[i], fourCorners[(i + 1) % 4]);
+                }
             }
         }
 
 
 #endif
 
-        private void OnTransformChildrenChanged()
+
+        protected override void OnEnable()
         {
-            PerformMaskAction();
+            base.OnEnable();
+            if(MaskEnabled())
+            {
+                MaskAllChildren();
+                MaskAllManaged();
+            }
+        }
+
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+
+            ResetAllChildren();
+            ResetAllManaged();
         }
 
 
-        public void PerformMaskAction()
+        public void MaskOneGameObject(GameObject obj)
         {
-            var mgs = GetComponentsInChildren<MaskableGraphic>();
+            if (obj == null)
+            {
+                return;
+            }
+            var mgs = obj.GetComponentsInChildren<MaskableGraphic>();
             foreach (var mg in mgs)
             {
                 Image img = mg as Image;
                 if (img)
                 {
-                    if(img.sprite.associatedAlphaSplitTexture != null)
+                    if (img.sprite.associatedAlphaSplitTexture != null)
                     {
                         mg.material = maskedMaterialETC1;
                         continue;
@@ -156,13 +168,58 @@ namespace AillieoUtils
             }
         }
 
-
-        public void ResetMaskTargets()
+        public void ResetOneGameObject(GameObject obj)
         {
-            var mgs = GetComponentsInChildren<MaskableGraphic>();
+            if (obj == null)
+            {
+                return;
+            }
+            var mgs = obj.GetComponentsInChildren<MaskableGraphic>();
             foreach (var mg in mgs)
             {
                 mg.material = null;
+            }
+        }
+
+
+        public void MaskAllChildren()
+        {
+            foreach (Transform t in transform)
+            {
+                MaskOneGameObject(t.gameObject);
+            }
+        }
+
+
+        public void ResetAllChildren()
+        {
+            foreach (Transform t in transform)
+            {
+                ResetOneGameObject(t.gameObject);
+            }
+        }
+
+        public void MaskAllManaged()
+        {
+            if(managedMaskingTarget == null)
+            {
+                return;
+            }
+            foreach(var obj in managedMaskingTarget)
+            {
+                MaskOneGameObject(obj);
+            }
+        }
+
+        public void ResetAllManaged()
+        {
+            if (managedMaskingTarget == null)
+            {
+                return;
+            }
+            foreach (var obj in managedMaskingTarget)
+            {
+                ResetOneGameObject(obj);
             }
         }
 
