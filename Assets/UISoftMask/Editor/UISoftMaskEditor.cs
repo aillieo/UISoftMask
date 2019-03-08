@@ -7,7 +7,7 @@ using System;
 namespace AillieoUtils
 {
     [CustomEditor(typeof(UISoftMask))]
-    public class LuaComponentRefInspector : Editor
+    public class UISoftMaskEditor : Editor
     {
         public override void OnInspectorGUI()
         {
